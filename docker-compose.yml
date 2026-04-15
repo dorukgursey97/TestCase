@@ -1,0 +1,39 @@
+services:
+
+  app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    ports:
+      - "5000:8080"
+    environment:
+      - ASPNETCORE_ENVIRONMENT=Development
+      - ConnectionStrings__DefaultConnection=Server=sqlserver;Database=TodoDb;User Id=sa;Password=YourPassword123!;TrustServerCertificate=True;
+      - Jwt__Key=TodoApp-SuperSecretKey-MustBe32CharsMin!!
+      - Jwt__Issuer=TodoApp
+      - Jwt__Audience=TodoApp
+      - Jwt__AccessTokenExpiryMinutes=15
+    depends_on:
+      sqlserver:
+        condition: service_healthy
+    restart: on-failure
+
+  sqlserver:
+    image: mcr.microsoft.com/mssql/server:2022-latest
+    environment:
+      - ACCEPT_EULA=Y
+      - SA_PASSWORD=YourPassword123!
+      - MSSQL_PID=Express
+    ports:
+      - "1433:1433"
+    volumes:
+      - sqlserver_data:/var/opt/mssql
+    healthcheck:
+      test: ["CMD-SHELL", "/opt/mssql-tools18/bin/sqlcmd -S localhost -U sa -P 'YourPassword123!' -Q 'SELECT 1' -C -b || exit 1"]
+      interval: 15s
+      timeout: 10s
+      retries: 10
+      start_period: 60s
+
+volumes:
+  sqlserver_data:
